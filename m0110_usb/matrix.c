@@ -32,7 +32,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #define CAPS        0x39
-#define CAPS_UP     0xBA //(CAPS | 0x80)
+#define CAPS_UP     0xB9 //(CAPS | 0x80)
+#define SHIFT       0x38
+#define SHIFT_UP    0xB8
 #define ROW(key)    ((key)>>3&0x0F)
 #define COL(key)    ((key)&0x07)
 
@@ -101,6 +103,10 @@ uint8_t matrix_scan(void)
 
       is_modified = true;
 
+      if (!matrix_is_on(ROW(keyaux), COL(keyaux)) && \
+          matrix_is_on(ROW(keyaux&0xDF), COL(keyaux&0xDF)))
+          keyaux &= 0xDF;
+
       if (keyaux != M0110_NULL)
         register_key(keyaux);
 
@@ -121,14 +127,23 @@ uint8_t matrix_scan(void)
             // Ignore LockingCaps key up event
             if (key == CAPS_UP) return 0;
         }
-#endif        
+#endif
         is_modified = true;
-        register_key(key);
+
+        /*if ( matrix_is_on(ROW(SHIFT), COL(SHIFT)) && \
+             matrix_is_on(ROW(key | 0x20), COL(key | 0x20)) && \
+             (key & 0x80))*/
+        if ( !matrix_is_on(ROW(key), COL(key)) && \
+              matrix_is_on(ROW(key | 0x20), COL(key | 0x20)) && \
+              (key & 0x80))
+             key |= 0x20;
+
+          register_key(key);
     }
 
-    if (debug_enable) {
+/*    if (debug_enable) {
         print("key: "); phex(key); print("\n");
-    }
+    }*/
     return 1;
 }
 
