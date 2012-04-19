@@ -55,12 +55,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define M0110_INQUIRY     0x10
-#define M0110_INSTNAT     0x14
-#define M0110_MODLE       0x16
+#define M0110_INSTANT     0x14
+#define M0110_MODEL       0x16
 #define M0110_TEST        0x36
 
+#define M0110_PAD_CODE    0x79
+#define M0110_OK          0x7D
 #define M0110_NULL        0x7B
 
+#define M0110_PAD_ADD     0x40
+#define M0110_QUAD_ADD    0x60
+
+#define M0110_CLOCK_SET   0X01
+#define M0110_CLOCK_CLR   0XFE
+#define M0110_DATA_SET    0X02
+#define M0110_DATA_CLR    0XFD
+
+#define M0110_SHIFT_DN    0x38
+#define M0110_SHIFT_UP    0xB8
 
 extern uint8_t m0110_error;
 
@@ -68,6 +80,8 @@ extern uint8_t m0110_error;
 void m0110_init(void);
 uint8_t m0110_send(uint8_t data);
 uint8_t m0110_recv(void);
+uint8_t m0110_inst_recv(void);
 uint8_t m0110_recv_key(void);
+uint8_t m0110_inst_key(void);
 
 #endif

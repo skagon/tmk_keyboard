@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 /* matrix size */
-#define MATRIX_ROWS 8
+#define MATRIX_ROWS 14
 #define MATRIX_COLS 8
 
 /* Locking Caps Lock support */
@@ -50,13 +50,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 /* ports */
-#define M0110_CLOCK_PORT        PORTF
-#define M0110_CLOCK_PIN         PINF
-#define M0110_CLOCK_DDR         DDRF
+/* skagon's note: changed port to B because of better driving capabilities */
+#define M0110_CLOCK_PORT        PORTB
+#define M0110_CLOCK_PIN         PINB
+#define M0110_CLOCK_DDR         DDRB
 #define M0110_CLOCK_BIT         0
-#define M0110_DATA_PORT         PORTF
-#define M0110_DATA_PIN          PINF
-#define M0110_DATA_DDR          DDRF
+#define M0110_DATA_PORT         PORTB
+#define M0110_DATA_PIN          PINB
+#define M0110_DATA_DDR          DDRB
 #define M0110_DATA_BIT          1
 
 #endif

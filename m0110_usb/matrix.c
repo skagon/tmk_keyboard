@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #define CAPS        0x39
-#define CAPS_UP     (CAPS | 0x80)
+#define CAPS_UP     0xBA //(CAPS | 0x80)
 #define ROW(key)    ((key)>>3&0x0F)
 #define COL(key)    ((key)&0x07)
 
@@ -79,7 +79,7 @@ void matrix_init(void)
 
 uint8_t matrix_scan(void)
 {
-    uint8_t key;
+    uint8_t key, keyaux;
 
     is_modified = false;
     key = m0110_recv_key();
@@ -91,9 +91,24 @@ uint8_t matrix_scan(void)
         register_key(CAPS_UP);
     }
 #endif
-    if (key == M0110_NULL) {
+    if (key == M0110_NULL)
+    {
         return 0;
-    } else {
+    }
+    else if (key == M0110_SHIFT_DN || key == M0110_SHIFT_UP)
+    {
+      keyaux = m0110_inst_key();
+
+      is_modified = true;
+
+      if (keyaux != M0110_NULL)
+        register_key(keyaux);
+
+      if ((keyaux&0x60) != 0x60 || keyaux == M0110_NULL)
+        register_key(key);
+    }
+    else
+    {
 #ifdef MATRIX_HAS_LOCKING_CAPS    
         if (host_keyboard_leds() & (1<<USB_LED_CAPS_LOCK)) {
             // CAPS LOCK on:

@@ -128,6 +128,35 @@ SCAN CODE:
          `------------------------------------------------'
 
 
+    ,---------------------------------------------------------. ,---------------.
+    |  `|  1|  2|  3|  4|  5|  6|  7|  8|  9|  0|  -|  =|Bcksp| |Clr|  =|  /|  *|
+    |---------------------------------------------------------| |---------------|
+    |Tab  |  Q|  W|  E|  R|  T|  Y|  U|  I|  O|  P|  [|  ]|   | |  7|  8|  9|  -|
+    |-----------------------------------------------------'   | |---------------|
+    |CapsLo|  A|  S|  D|  F|  G|  H|  J|  K|  L|  ;|  '|Return| |  4|  5|  6|  +|
+    |---------------------------------------------------------| |---------------|
+    |Shift   |  Z|  X|  C|  V|  B|  N|  M|  ,|  ,|  /|Shft|Up | |  1|  2|  3|   |
+    |---------------------------------------------------------' |-----------|Ent|
+    |Optio|Mac    |           Space           |  \|Lft|Rgt|Dn | |      0|  .|   |
+    `---------------------------------------------------------' `---------------'
+    ,---------------------------------------------------------. ,---------------.
+    | 32| 12| 13| 14| 15| 17| 16| 1A| 1C| 19| 1D| 1B| 18|   33| | 07| 08| 0D| 02|
+    |---------------------------------------------------------| |---------------|
+    |   30| 0C| 0D| 0E| 0F| 10| 11| 20| 22| 1F| 23| 21| 1E|   | | 19| 1B| 1C| 1E|
+    |-----------------------------------------------------'   | |---------------|
+    |    39| 00| 01| 02| 03| 05| 04| 26| 28| 25| 29| 27|    24| | 16| 17| 18| 06|
+    |---------------------------------------------------------| |---------------|
+    |      38| 06| 07| 08| 09| 0B| 2D| 2E| 2B| 2F| 2C|  38| 0D| | 13| 14| 15|   |
+    |---------------------------------------------------------' |-----------| 0C|
+    |   3A|     37|            31             | 2A| 06| 02| 08| |     12| 01|   |
+    `---------------------------------------------------------' `---------------'
+Note: On the M0110A, the numpad keys and the arrow keys are preceded by 0x79 (scan code 3C)
+      Moreover, the numpad keys =, /, * and + are preceded by shift-down (0x71 or 38) on press
+      and shift-up (0xF1) on release. So, the data transferred by nupmad 5 is "79 2F"
+      whereas for numpad + it's "71 79 0D".
+
+
+
 References
 ----------
 Protocol:
@@ -143,13 +172,28 @@ Scan Codes:
 */
 
 
-#define WAIT(stat, us, err) do { \
+#define WAIT_US(stat, us, err) do { \
     if (!wait_##stat(us)) { \
         m0110_error = err; \
         goto ERROR; \
     } \
 } while (0)
 
+#define WAIT WAIT_US
+
+#define WAIT_MS(stat, ms, err) do { \
+    uint16_t _ms = ms; \
+    while (_ms) { \
+        if (wait_##stat(1000)) { \
+            break; \
+        } \
+        _ms--; \
+    } \
+    if (_ms == 0) { \
+        m0110_error = err; \
+        goto ERROR; \
+    } \
+} while (0)
 
 uint8_t m0110_error = 0;
 
@@ -158,11 +202,16 @@ void m0110_init(void)
 {
     uint8_t data;
     idle();
-    _delay_ms(255);
+    _delay_ms(1000);
 
-    m0110_send(M0110_MODLE);
+    m0110_send(M0110_MODEL);
     data = m0110_recv();
     print("m0110_init model: "); phex(data); print("\n");
+
+// TO DO: m0110 returns model 0x09 while m0110A returns 0x0B
+// some code handling the model numbers would be nice
+/*    m0110 : 0x09  00001001 : model number 4 (100)
+      m0110A: 0x0B  00001011 : model number 5 (101)*/
 
     m0110_send(M0110_TEST);
     data = m0110_recv();
@@ -174,10 +223,10 @@ uint8_t m0110_send(uint8_t data)
     m0110_error = 0;
 
     request();
-    WAIT(clock_lo, 1000, 0);
+    WAIT_MS(clock_lo, 250, 1);
     for (uint8_t bit = 0x80; bit; bit >>= 1) {
         WAIT(clock_lo, 250, 3);
-        _delay_us(15);
+        //_delay_us(15);
         if (data&bit) {
             data_hi();
         } else {
@@ -189,9 +238,8 @@ uint8_t m0110_send(uint8_t data)
     idle();
     return 1;
 ERROR:
-    if (m0110_error) {
-        print("m0110_send err: "); phex(m0110_error); print("\n");
-    }
+    print("m0110_send err: "); phex(m0110_error); print("\n");
+    _delay_ms(500);
     idle();
     return 0;
 }
@@ -201,7 +249,7 @@ uint8_t m0110_recv(void)
     uint8_t data = 0;
     m0110_error = 0;
 
-    WAIT(clock_lo, -1, 0); // need 250ms? insted 0xffff(16bit max)us
+    WAIT_MS(clock_lo, 250, 1);
     for (uint8_t i = 0; i < 8; i++) {
         data <<= 1;
         WAIT(clock_lo, 200, 2);
@@ -211,65 +259,95 @@ uint8_t m0110_recv(void)
         }
     }
     idle();
-    if (data != M0110_NULL) {
-        print("m0110_recv data: "); phex(data); print("\n");
-    }
     return data;
 ERROR:
-    if (m0110_error) {
-        print("m0110_recv err: "); phex(m0110_error); print("\n");
-    }
+    print("m0110_recv err: "); phex(m0110_error); print("\n");
+    _delay_ms(500);
     idle();
     return 0xFF;
+}
+
+uint8_t m0110_inst_recv(void)
+{
+    m0110_send(M0110_INSTANT);
+
+    return m0110_recv();
 }
 
 uint8_t m0110_recv_key(void)
 {
     uint8_t key;
+
     m0110_send(M0110_INQUIRY);
+
     key = m0110_recv();
-    if (key == 0xFF || key == M0110_NULL)
+
+    if (key == M0110_PAD_CODE)
+    {
+      key = m0110_inst_recv();
+      return ((key & 0x80) | ((key & 0x7F)>>1)) | M0110_PAD_ADD;
+    }
+    else if (key == 0xFF || key == M0110_NULL)
         return M0110_NULL;
-    else 
-        return ((key&(1<<7)) | ((key&0x7F)>>1));
+    else
+        return (key & 0x80) | ((key & 0x7F)>>1);
 }
 
+uint8_t m0110_inst_key(void)
+{
+    uint8_t key;
+
+    key = m0110_inst_recv();
+
+    if (key == 0x79)
+    {
+      key = m0110_inst_recv();
+
+      if ((key&0x7F) == 0x05 || (key&0x7F) == 0x0D || \
+          (key&0x7F) == 0x11 || (key&0x7F) == 0x1B)
+        return ((key & 0x80) | ((key & 0x7F)>>1)) | M0110_ARR_ADD;
+      else
+        return ((key & 0x80) | ((key & 0x7F)>>1)) | M0110_PAD_ADD;
+    }
+    else if (key == 0xFF || key == M0110_NULL)
+        return M0110_NULL;
+    else
+        return (key & 0x80) | ((key & 0x7F)>>1);
+}
 
 static inline void clock_lo()
 {
-    M0110_CLOCK_PORT &= ~(1<<M0110_CLOCK_BIT);
-    M0110_CLOCK_DDR  |=  (1<<M0110_CLOCK_BIT);
+    M0110_CLOCK_DDR  |= M0110_CLOCK_SET;   //direction: output, set to 1
+    M0110_CLOCK_PORT &= M0110_CLOCK_CLR;   //set bit to 0
 }
 static inline void clock_hi()
 {
-    /* input with pull up */
-    M0110_CLOCK_DDR  &= ~(1<<M0110_CLOCK_BIT);
-    M0110_CLOCK_PORT |=  (1<<M0110_CLOCK_BIT);
+    M0110_CLOCK_DDR  |= M0110_CLOCK_SET;   //direction: output, set to 1
+    M0110_CLOCK_PORT |= M0110_CLOCK_SET;   //set bit to 1
 }
 static inline bool clock_in()
 {
-    M0110_CLOCK_DDR  &= ~(1<<M0110_CLOCK_BIT);
-    M0110_CLOCK_PORT |=  (1<<M0110_CLOCK_BIT);
+    M0110_CLOCK_PORT |= M0110_CLOCK_SET; //set bit to 1
+    M0110_CLOCK_DDR  &= M0110_CLOCK_CLR;   //direction: input, set to 0
     _delay_us(1);
-    return M0110_CLOCK_PIN&(1<<M0110_CLOCK_BIT);
+    return M0110_CLOCK_PIN & M0110_CLOCK_SET;
 }
 static inline void data_lo()
 {
-    M0110_DATA_PORT &= ~(1<<M0110_DATA_BIT);
-    M0110_DATA_DDR  |=  (1<<M0110_DATA_BIT);
+    M0110_DATA_DDR  |= M0110_DATA_SET;    //direction: output, set to 1
+    M0110_DATA_PORT &= M0110_DATA_CLR;    //set bit to 0
 }
 static inline void data_hi()
 {
-    /* input with pull up */
-    M0110_DATA_DDR  &= ~(1<<M0110_DATA_BIT);
-    M0110_DATA_PORT |=  (1<<M0110_DATA_BIT);
+    M0110_DATA_DDR  |= M0110_DATA_SET;    //direction: output, set to 1
+    M0110_DATA_PORT |= M0110_DATA_SET;    //set bit to 1
 }
 static inline bool data_in()
 {
-    M0110_DATA_DDR  &= ~(1<<M0110_DATA_BIT);
-    M0110_DATA_PORT |=  (1<<M0110_DATA_BIT);
+    M0110_DATA_PORT |= M0110_DATA_SET;    //set bit to 1
+    M0110_DATA_DDR  &= M0110_DATA_CLR;    //direction: input, set to 0
     _delay_us(1);
-    return M0110_DATA_PIN&(1<<M0110_DATA_BIT);
+    return M0110_DATA_PIN & M0110_DATA_SET;
 }
 
 static inline uint16_t wait_clock_lo(uint16_t us)
