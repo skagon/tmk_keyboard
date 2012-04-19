@@ -64,7 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define M0110_NULL        0x7B
 
 #define M0110_PAD_ADD     0x40
-#define M0110_QUAD_ADD    0x60
+#define M0110_ARR_ADD     0x60
 
 #define M0110_CLOCK_SET   0X01
 #define M0110_CLOCK_CLR   0XFE
