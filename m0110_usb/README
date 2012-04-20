@@ -1,15 +1,26 @@
 M0110 to USB keyboard converter
 ===============================
-This firmware converts the protocol of Apple Macintosh keyboard M0110 into USB.
+This firmware converts the protocol of the Apple Macintosh M0110 and M0110A keyboards to USB HID keyboard.
 
 
 Connection
 ----------
-You need 4P4C plug and cable to connect Teensy into M0110.
-Teensy port F0 is assigned for CLOCK line and F1 for DATA by default, you can change pin configuration with editing config.h..
+You need a 4P4C plug and cable to connect Teensy into M0110.
+Teensy port B0 is assigned for CLOCK line and B1 for DATA by default, you can change pin configuration with editing config.h .
 
 Plug:
     http://en.wikipedia.org/wiki/Modular_connector#4P4C
+             ,--------.
+             | ,----. |
+             | | [] | |
+             | `----' |
+             |  !!!!  |
+             |   o o  |
+             |  o o   |   2 1
+             `--------'  4 3
+
+This is a rough drawing of a 4P4C receptacle as seen from the back side,
+that is, the side the wires are coming out, not the side the jack plugs in.
 
 Pinout:
     http://www.kbdbabel.org/conn/kbd_connector_macplus.png
@@ -18,11 +29,15 @@ Pinout:
     3(Green):   DATA
     4(Yellow):  +5V
 
+Note: the colours may be different in your case; verify by pin numbers and positions before connecting.
+Attention: a phone handset (coiled) cord may NOT be of sufficient quality and/or wire gauge to carry the keyboard
+            signals and currents. Either use the original Apple cable (please do not butcher) along with a 4P4C plug 
+            (from an old phone perhaps) or make your own using good quality cable.
 
 
-Build Frimware
+Build Firmware
 --------------
-Optionally edit Makefile and config.h for build options, pin configuration or MCU.
+Optionally, edit Makefile and config.h for build options, pin configuration or MCU.
 
 $ cd m0110_usb
 $ make
@@ -32,12 +47,12 @@ and program your Teensy with loader.
 
 Keymap
 ------
-You can change a keymap by editing code of keymap.c like following.
-How to define the keymap is probably obvious. You can find  key symbols in usb_keycodes.h.
+You can change a keymap by editing the code in keymap.c, using the existing keymaps as a template.
+How to define the keymap is probably obvious. You can find key symbols and designations in usb_keycodes.h.
 
 This is a default keymap for M0110.
 ,---------------------------------------------------------.
-|  `|  1|  2|  3|  4|  5|  6|  7|  8|  9|  0|  -|  =|Bacpa|
+|  `|  1|  2|  3|  4|  5|  6|  7|  8|  9|  0|  -|  =|Bcksp|
 |---------------------------------------------------------|
 |Tab  |  Q|  W|  E|  R|  T|  Y|  U|  I|  O|  P|  [|  ]|  \|
 |---------------------------------------------------------|
@@ -48,8 +63,51 @@ This is a default keymap for M0110.
      |Opt|Alt |         Space               |Alt |Opt|
      `-----------------------------------------------'
 
+And this is a default keymap for M0110A:
+,---------------------------------------------------------. ,---------------.
+|  `|  1|  2|  3|  4|  5|  6|  7|  8|  9|  0|  -|  =|Bcksp| |Clr|  =|  /|  *|
+|---------------------------------------------------------| |---------------|
+|Tab  |  Q|  W|  E|  R|  T|  Y|  U|  I|  O|  P|  [|  ]|   | |  7|  8|  9|  -|
+|-----------------------------------------------------'   | |---------------|
+|Contro|  A|  S|  D|  F|  G|  H|  J|  K|  L|  ;|  '|Return| |  4|  5|  6|  +|
+|---------------------------------------------------------| |---------------|
+|Shift   |  Z|  X|  C|  V|  B|  N|  M|  ,|  ,|  /|Shft|Up | |  1|  2|  3|   |
+|---------------------------------------------------------' |-----------|Ent|
+|Opt  |Alt    |         Space             |  \|Lft|Rgt|Dn | |      0|  .|   |
+`---------------------------------------------------------' `---------------'
+
 
 Notes
 -----
+The keymap works with both M0110 and M0110A keyboards. As you can see, the M0110A is a superset of the M0110 keyboard, 
+with only one exception: the right Alt key does not exist on the M0110A, but since it generates a unique scan code 
+which is not used for some other key in the M0110A, they are totally interchangeable.
+In fact, the M0110A is functionally (almost) identical to the combination of the M0110 along with the M0120 keypad.
+The only difference (which is causing some problems as you will read below) is that the M0110+M0120 don't have dedicated 
+arrow keys, while the M0110A does. However, the M0120 did have arrow keys, which doubled as the [comma], [/], [*] and [+] 
+keys, when used with the [Shift] key. The M0110A has substituted the [comma] key with the [=] key, however its scancode is 
+the same.
+Also, the now dedicated arrow keys of the M0110A are transmitting the same scancodes as the keypad but also, its 
+[=], [/], [*] and [+] keys (hereafter referred to as "calc" keys) are not assigned new scancodes but, instead, transmit a 
+sequence of scancodes which emulates the [Shift] key press, followed by the same scancode sequence of the arrow keys!
+The problem with that approach is that, while in most cases it's easy to distinguish between a user-generated [Shift] key 
+event (press or release) followed by an arrow or a calc key and a simulated [Shift] key event generated upon a calc key 
+event, when the user is typing fairly fast, it is possible that the two events become indistinguishable, and produce 
+undesired results -- nothing major, though, just one or two stray characters or cursor movements; it will NOT format your 
+drives, kill your cat or make your wife run away with the pizza boy.
+
+The reason for that behaviour, as it should be apparent by now, is not a deficiency or a bug in our code; it's a side-effect 
+of the choices the Apple engineers made all those years ago. It is very apparent that they never considered the possibility 
+of using the arrow keys TOGETHER with the [Shift] key, like we do nowadays, to select text or multiple objects (e.g. files). 
+Back then, all these actions were supposed to be accomplished using the mouse. In fact, the Apple guys were so serious about 
+using the mouse *everywhere* that the original Mac keyboard, the M0110, didn't have arrow keys AT ALL, and they only provided 
+them on the M0120 keypad and the M0110A keyboard because both were considered "business" oriented peripherals, only useful to 
+accountants and the likes.
+
+Unfortunately, my classic Macs don't work, so I don't know if the Shift plus arrow keys on the M0110A will result in calc key 
+events on the original Macs, as I do not know if the Apple engineers had dealt with the issue somehow, or bypassed it 
+altogether by effectively disabling all Shift plus arrow/calc keys combinations. However, using the keyboard on a modern 
+computer dictates that the keys work *properly* (by modern standards).
+I believe our code is providing that functionality for > 99.9% of the time.
 
 EOF
