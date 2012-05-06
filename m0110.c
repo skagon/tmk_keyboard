@@ -171,7 +171,11 @@ Scan Codes:
     http://m0115.web.fc2.com/m0110a.jpg
 */
 
-
+/*
+ WAIT_US
+ Local macro, calls one of functions wait_data/clock_hi/lo and returns error if it returns false.
+ Wait time in microseconds
+ */
 #define WAIT_US(stat, us, err) do { \
     if (!wait_##stat(us)) { \
         m0110_error = err; \
@@ -181,6 +185,11 @@ Scan Codes:
 
 #define WAIT WAIT_US
 
+/*
+ WAIT_MS
+ Local macro, calls one of functions wait_data/clock_hi/lo and returns error if it returns false.
+ Wait time in milliseconds
+ */
 #define WAIT_MS(stat, ms, err) do { \
     uint16_t _ms = ms; \
     while (_ms) { \
@@ -197,7 +206,10 @@ Scan Codes:
 
 uint8_t m0110_error = 0;
 
-
+/*
+ m0110_init
+ Basic initialisation of the keyboard.
+ */
 void m0110_init(void)
 {
     uint8_t data;
@@ -218,6 +230,10 @@ void m0110_init(void)
     print("m0110_init test: "); phex(data); print("\n");
 }
 
+/*
+ m0110_send
+ Basic function for transmitting one byte to the keyboard.
+ */
 uint8_t m0110_send(uint8_t data)
 {
     m0110_error = 0;
@@ -244,6 +260,10 @@ ERROR:
     return 0;
 }
 
+/*
+ m0110_recv
+ Basic function for receiving one byte from the keyboard.
+ */
 uint8_t m0110_recv(void)
 {
     uint8_t data = 0;
@@ -267,6 +287,13 @@ ERROR:
     return 0xFF;
 }
 
+/*
+ m0110_inst_recv
+ Instant receive function. Transmits the "instant" command to the keyboard and then receives
+ one byte in reply.
+ The instant command instructs the keyboard to report immediately (read description of normal
+ key receive for more information).
+ */
 uint8_t m0110_inst_recv(void)
 {
     m0110_send(M0110_INSTANT);
@@ -274,6 +301,17 @@ uint8_t m0110_inst_recv(void)
     return m0110_recv();
 }
 
+/*
+ m0110_recv_key
+ Receive key function. Transmits an "inquiry" command to the keyboard and receives one byte
+ in reply.
+ IMPORTANT: after an "inquiry", the keyboard could take up to 500msec to respond. The Apple
+ specification allows the M0110 keyboard up to 250msec to reply, whereas the Macintosh will
+ issue a reinitialisation command (0x16) after not receiving a reply for 500msec. It is unclear
+ how much time the combination of M0110 keyboard plus M0120 keypad take to respond, however the
+ 500msec limit remains.
+ The "instant" command replies instantly, without any such delay.
+ */
 uint8_t m0110_recv_key(void)
 {
     uint8_t key;
@@ -282,66 +320,100 @@ uint8_t m0110_recv_key(void)
 
     key = m0110_recv();
 
-    if (key == M0110_PAD_CODE)
-    {
+    if (key == M0110_PAD_CODE)    // If the reply is the keypad prefix, issue an 'immediate' command
+    {                             // to receive the actual key scancode and add 0x40 to the key code.
       key = m0110_inst_recv();
       return ((key & 0x80) | ((key & 0x7F)>>1)) | M0110_PAD_ADD;
     }
-    else if (key == 0xFF || key == M0110_NULL)
+    else if (key == 0xFF || key == M0110_NULL)    // if the reply is null, return null
         return M0110_NULL;
-    else
+    else                          // and if the reply is a normal key, return a normal key code
         return (key & 0x80) | ((key & 0x7F)>>1);
 }
 
+/*
+ m0110_inst_key
+ Instant key receive function. Transmits an "instant" command to the keyboard and receives one byte
+ in reply.
+ Filters the received scancode through the same criteria as the recv_key but also differentiates
+ between the numerical keypad keys and the special 'calc' keys (= / * +) which use the same scancodes
+ as the arrow keys.
+ This function is only called after a 'shift' key event.
+ */
 uint8_t m0110_inst_key(void)
 {
     uint8_t key;
 
     key = m0110_inst_recv();
 
-    if (key == 0x79)
-    {
+    if (key == M0110_PAD_CODE)    // If the reply is the keypad prefix, issue an 'immediate' command
+    {                             // to receive the actual key scancode and...
       key = m0110_inst_recv();
 
+   // If the scancode is one of the 'calc' keys add 0x60 to the key code
       if ((key&0x7F) == 0x05 || (key&0x7F) == 0x0D || \
           (key&0x7F) == 0x11 || (key&0x7F) == 0x1B)
         return ((key & 0x80) | ((key & 0x7F)>>1)) | M0110_ARR_ADD;
-      else
+      else                                                  // otherwise, add the normal 0x40 for keypad
         return ((key & 0x80) | ((key & 0x7F)>>1)) | M0110_PAD_ADD;
     }
-    else if (key == 0xFF || key == M0110_NULL)
+    else if (key == 0xFF || key == M0110_NULL)      // if the reply is null, return null
         return M0110_NULL;
-    else
+    else                          // and if the reply is a normal key, return a normal key code
         return (key & 0x80) | ((key & 0x7F)>>1);
 }
 
+/*
+ clock_lo
+ Set the clock port to "low"
+ */
 static inline void clock_lo()
 {
     M0110_CLOCK_DDR  |= M0110_CLOCK_SET;   //direction: output, set to 1
     M0110_CLOCK_PORT &= M0110_CLOCK_CLR;   //set bit to 0
 }
+/*
+ clock_hi
+ Set the clock port to "high"
+ */
 static inline void clock_hi()
 {
     M0110_CLOCK_DDR  |= M0110_CLOCK_SET;   //direction: output, set to 1
     M0110_CLOCK_PORT |= M0110_CLOCK_SET;   //set bit to 1
 }
+/*
+ clock_in
+ Read the clock port state
+ */
 static inline bool clock_in()
 {
-    M0110_CLOCK_PORT |= M0110_CLOCK_SET; //set bit to 1
+    M0110_CLOCK_PORT |= M0110_CLOCK_SET;   //set bit to 1
     M0110_CLOCK_DDR  &= M0110_CLOCK_CLR;   //direction: input, set to 0
     _delay_us(1);
     return M0110_CLOCK_PIN & M0110_CLOCK_SET;
 }
+/*
+ data_lo
+ Set the data port to "low"
+ */
 static inline void data_lo()
 {
     M0110_DATA_DDR  |= M0110_DATA_SET;    //direction: output, set to 1
     M0110_DATA_PORT &= M0110_DATA_CLR;    //set bit to 0
 }
+/*
+ data_hi
+ Set the data port to "high"
+ */
 static inline void data_hi()
 {
     M0110_DATA_DDR  |= M0110_DATA_SET;    //direction: output, set to 1
     M0110_DATA_PORT |= M0110_DATA_SET;    //set bit to 1
 }
+/*
+ data_in
+ Read the data port state
+ */
 static inline bool data_in()
 {
     M0110_DATA_PORT |= M0110_DATA_SET;    //set bit to 1
@@ -350,33 +422,56 @@ static inline bool data_in()
     return M0110_DATA_PIN & M0110_DATA_SET;
 }
 
+/*
+ wait_clock_lo
+ Read the clock bit continuously, until it goes "low" or until timeout (us)
+ */
 static inline uint16_t wait_clock_lo(uint16_t us)
 {
     while (clock_in()  && us) { asm(""); _delay_us(1); us--; }
     return us;
 }
+/*
+ wait_clock_hi
+ Read the clock bit continuously, until it goes "high" or until timeout (us)
+ */
 static inline uint16_t wait_clock_hi(uint16_t us)
 {
     while (!clock_in() && us) { asm(""); _delay_us(1); us--; }
     return us;
 }
+/*
+ Read the data bit continuously, until it goes "low" or until timeout (us)
+ */
 static inline uint16_t wait_data_lo(uint16_t us)
 {
     while (data_in() && us)  { asm(""); _delay_us(1); us--; }
     return us;
 }
+/*
+ Read the data bit continuously, until it goes "high" or until timeout (us)
+ */
 static inline uint16_t wait_data_hi(uint16_t us)
 {
     while (!data_in() && us)  { asm(""); _delay_us(1); us--; }
     return us;
 }
 
+/*
+ idle
+ Set both clock and data bits to "high". Keyboard interprets that as "idle".
+ */
 static inline void idle(void)
 {
     clock_hi();
     data_hi();
 }
 
+/*
+ request
+ Keeping the clock bit "high", pull the data bit "low. Keyboard interprets that as a request for
+ a clock signal, so that a command can be sent to it from the controller (Teensy).
+ */
 static inline void request(void)
 {
     clock_hi();

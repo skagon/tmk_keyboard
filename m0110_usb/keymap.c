@@ -120,7 +120,7 @@ static const uint8_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      *      M0110A
      */
     KEYMAP(
-     GRV,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0,MINS, EQL,BSPC,   DEL,PEQL,PSLS,PAST,
+     GRV,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0,MINS, EQL,BSPC,   DEL, INS,PSLS,PAST,
      TAB,   Q,   W,   E,   R,   T,   Y,   U,   I,   O,   P,LBRC,RBRC,         P7,  P8,  P9,PMNS,
      FN2,   A,   S,   D,   F,   G,   H,   J,   K,   L,SCLN,QUOT,      ENT,    P4,  P5,  P6,PPLS,
     LSFT,   Z,   X,   C,   V,   B,   N,   M,COMM, DOT,SLSH,            UP,    P1,  P2,  P3,PENT,
@@ -129,11 +129,11 @@ static const uint8_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
     // vi mousekeys -- FN0
     KEYMAP(
-     ESC,  F1,  F2,  F3,  F4,  F5,  F6,  F7,  F8,  F9, F10, F11, F12, DEL,   DEL,PEQL,PSLS,PAST,
+     ESC,  F1,  F2,  F3,  F4,  F5,  F6,  F7,  F8,  F9, F10, F11, F12, DEL,   DEL, INS,PSLS,PAST,
     CAPS,  NO,  NO,  NO,  NO,  NO,WH_L,WH_D,WH_U,WH_R,  NO,  NO,  NO,         P7,  P8,  P9,PMNS,
     LCTL,VOLD,VOLU,MUTE,  NO,  NO,MS_L,MS_D,MS_U,MS_R, FN0,  NO,      ENT,    P4,  P5,  P6,PPLS,
     LSFT,  NO,  NO,  NO,  NO,BTN3,BTN2,BTN1,  NO,  NO,  NO,            UP,    P1,  P2,  P3,PENT,
-       LCTL,LGUI,          BTN1,                      BSLS,LEFT,RGHT,DOWN,    P0,     PDOT,
+       LCTL,LGUI,       BTN1,                         BSLS,LEFT,RGHT,DOWN,    P0,     PDOT,
                                                       RALT
     ),
     // vi cusorkeys -- FN1
@@ -142,16 +142,16 @@ static const uint8_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     CAPS, INS,  NO,  NO,  NO, INS,HOME,PGUP,  NO,   NO,  UP,  NO,  NO,         P7,  P8,  P9,PMNS,
     LCTL,HOME,PGUP,  NO,  NO, DEL, END,PGDN,  NO, LEFT,DOWN,RGHT,      ENT,    P4,  P5,  P6,PPLS,
     LSFT, END,PGDN,  NO,  NO,  NO,  NO,  NO, FN1,   NO,  NO,            UP,    P1,  P2,  P3,PENT,
-    LCTL,  LGUI,          SPC,                    BSLS,LEFT,RGHT,DOWN,              P0,PDOT,
-                                                  RALT
+    LCTL,  LGUI,         SPC,                          BSLS,LEFT,RGHT,DOWN,         P0,PDOT,
+                                                       RALT
     ),
     // HHKB & WASD -- FN2
     KEYMAP(
-     ESC,  F1,  F2,  F3,  F4,  F5,  F6,  F7,  F8,  F9, F10, F11, F12, F13,   DEL,NLCK,PSLS,PAST,
-    CAPS,   Q,   W,   E,   R,   T,   Y,   U,   I,   O,   P,LBRC,RBRC,       HOME, INS,PGUP,PMNS,
+     ESC,  F1,  F2,  F3,  F4,  F5,  F6,  F7,  F8,  F9, F10, F11, F12,BSPC,   DEL, INS,PSLS,PAST,
+     TAB,   Q,   W,   E,   R,   T,   Y,   U,   I,   O,   P,LBRC,RBRC,       HOME,  NO,PGUP,PMNS,
      FN2,   A,   S,   D,   F,   G,   H,   J,   K,   L,SCLN,QUOT,      ENT,   END,  UP,PGDN,PPLS,
     LSFT,   Z,   X,   C,   V,   B,   N,   M,COMM, DOT,SLSH,            UP,  LEFT,DOWN,RGHT,PENT,
-    LCTL, LGUI,          SPC,                         BSLS,LEFT,DOWN,RGHT,         P0,PDOT,
+    LCTL, LGUI,          SPC,                         BSLS,LEFT,DOWN,RGHT,        F13,CAPS,
                                                       RALT
     ),
 };
