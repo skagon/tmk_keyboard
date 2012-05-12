@@ -130,7 +130,7 @@ uint8_t matrix_scan(void)
        // with the same scancode is registered as pressed, then we understand that we've got a simultaneous
        // shift-arrow release; then readjust the received key code to 'arrow' (0x40) instead of 'calc' (0x60)
        // (i.e. subtract 0x20)
-          if (keyaux&0x80)        // If event is release; quick check before matrix check
+          if (keyaux&0xE0)        // If event is release; quick check before matrix check
             if (!matrix_is_on(ROW(keyaux), COL(keyaux)) && \
                 matrix_is_on(ROW(keyaux&0xDF), COL(keyaux&0xDF)))
                 keyaux &= 0xDF;
