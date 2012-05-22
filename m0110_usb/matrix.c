@@ -119,6 +119,11 @@ uint8_t matrix_scan(void)
           register_key(keyaux);
           register_key(key);
       }
+      else if ((key & 0x80) != (keyaux & 0x80))    // If the shift event is 'release' but the second event is
+      {                                             // press, then it's a user-generated event and not a calc key
+          register_key(keyaux&0xDF);
+          register_key(key);
+      }
       else        // If the received event is not null and not plain key, things get complicated
       {
        // We know that the received key is either keypad, arrow or calc; moreover, we assume that any
@@ -130,7 +135,7 @@ uint8_t matrix_scan(void)
        // with the same scancode is registered as pressed, then we understand that we've got a simultaneous
        // shift-arrow release; then readjust the received key code to 'arrow' (0x40) instead of 'calc' (0x60)
        // (i.e. subtract 0x20)
-          if (keyaux&0xE0)        // If event is release; quick check before matrix check
+          if (keyaux&0xE0 == 0xE0)        // If event is release; quick check before matrix check
             if (!matrix_is_on(ROW(keyaux), COL(keyaux)) && \
                 matrix_is_on(ROW(keyaux&0xDF), COL(keyaux&0xDF)))
                 keyaux &= 0xDF;
